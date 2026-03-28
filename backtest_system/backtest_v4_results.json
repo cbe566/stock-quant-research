@@ -1,0 +1,52 @@
+{
+  "version": "v4",
+  "generated_at": "2026-03-28T22:44:02.190762",
+  "improvements": [
+    "ATR動態止損",
+    "SPY大盤過濾",
+    "智能分批出場",
+    "盈餘修正"
+  ],
+  "us_summary": {
+    "label": "美股v4",
+    "total": 36,
+    "wins": 15,
+    "losses": 21,
+    "win_rate": 41.7,
+    "avg_return": 3.08,
+    "median_return": -5.28,
+    "avg_holding": 24.0,
+    "avg_max_fav": 22.41,
+    "avg_max_dd": -13.42,
+    "exit_數據截止": "2筆 勝率:100% 均報:12.9%",
+    "exit_止損": "20筆 勝率:0% 均報:-7.6%",
+    "exit_止盈(目標2)": "9筆 勝率:100% 均報:24.7%",
+    "exit_追蹤止損": "5筆 勝率:80% 均報:2.8%",
+    "trend_up": "36筆 勝率:42% 均報:3.1%",
+    "best": "INTC (+33.9%)",
+    "worst": "TSLA (-15.7%)"
+  },
+  "hk_summary": {
+    "label": "港股v4",
+    "total": 2,
+    "wins": 1,
+    "losses": 1,
+    "win_rate": 50.0,
+    "avg_return": 8.64,
+    "median_return": 8.64,
+    "avg_holding": 19.0,
+    "avg_max_fav": 52.62,
+    "avg_max_dd": -8.48,
+    "exit_止盈(目標2)": "1筆 勝率:100% 均報:26.7%",
+    "exit_止損": "1筆 勝率:0% 均報:-9.4%",
+    "trend_up": "2筆 勝率:50% 均報:8.6%",
+    "best": "0883.HK (+26.7%)",
+    "worst": "2020.HK (-9.4%)"
+  },
+  "comparison": {
+    "v1": 57.8,
+    "v2": 67.9,
+    "v3": 47.2,
+    "v4": 41.7
+  }
+}

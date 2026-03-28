@@ -1,0 +1,70 @@
+{
+  "version": "v5",
+  "generated_at": "2026-03-28T22:56:05.793369",
+  "us": {
+    "label": "美股v5",
+    "total": 36,
+    "wins": 19,
+    "losses": 17,
+    "win_rate": 52.8,
+    "avg_return": 3.1,
+    "total_return": 111.6,
+    "avg_holding": 32.0,
+    "profit_factor": 1.62,
+    "avg_win": 15.37,
+    "avg_loss": 10.61,
+    "win_loss_ratio": 1.45,
+    "expectancy": 3.11,
+    "exit_止盈": {
+      "count": 17,
+      "wr": 100.0,
+      "avg": 16.58
+    },
+    "exit_持有到期": {
+      "count": 4,
+      "wr": 50.0,
+      "avg": 1.09
+    },
+    "exit_止損": {
+      "count": 15,
+      "wr": 0.0,
+      "avg": -11.65
+    },
+    "best": "META (+29.3%)",
+    "worst": "ADBE (-17.6%)"
+  },
+  "hk": {
+    "label": "港股v5",
+    "total": 2,
+    "wins": 1,
+    "losses": 1,
+    "win_rate": 50.0,
+    "avg_return": 3.22,
+    "total_return": 6.45,
+    "avg_holding": 16.0,
+    "profit_factor": 1.48,
+    "avg_win": 19.88,
+    "avg_loss": 13.43,
+    "win_loss_ratio": 1.48,
+    "expectancy": 3.22,
+    "exit_止盈": {
+      "count": 1,
+      "wr": 100.0,
+      "avg": 19.88
+    },
+    "exit_止損": {
+      "count": 1,
+      "wr": 0.0,
+      "avg": -13.43
+    },
+    "best": "0883.HK (+19.9%)",
+    "worst": "2020.HK (-13.4%)"
+  },
+  "evolution": {
+    "v1": 57.8,
+    "v2": 67.9,
+    "v3": 47.2,
+    "v4": 41.7,
+    "v5": 52.8
+  }
+}

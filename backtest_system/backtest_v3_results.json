@@ -1,0 +1,86 @@
+{
+  "version": "v3",
+  "generated_at": "2026-03-28T22:31:40.062128",
+  "improvements": [
+    "P0-1:盈餘修正因子",
+    "P0-2:Triple Barrier出場",
+    "P0-3:信心過濾"
+  ],
+  "us_summary": {
+    "label": "美股v3",
+    "total": 36,
+    "wins": 17,
+    "losses": 19,
+    "win_rate": 47.2,
+    "avg_return": 2.25,
+    "weighted_return": 2.25,
+    "avg_holding_days": 24.0,
+    "exit_stats": {
+      "止盈": {
+        "count": 14,
+        "avg_return": 11.78,
+        "win_rate": 85.7
+      },
+      "止損": {
+        "count": 20,
+        "avg_return": -4.24,
+        "win_rate": 20.0
+      },
+      "數據截止": {
+        "count": 2,
+        "avg_return": 0.45,
+        "win_rate": 50.0
+      }
+    },
+    "confidence_stats": {
+      "B": {
+        "count": 36,
+        "win_rate": 47.2,
+        "avg_return": 2.25
+      }
+    },
+    "best": "META (+29.3%)",
+    "worst": "TSLA (-18.6%)"
+  },
+  "hk_summary": {
+    "label": "港股v3",
+    "total": 2,
+    "wins": 1,
+    "losses": 1,
+    "win_rate": 50.0,
+    "avg_return": 5.25,
+    "weighted_return": 0.37,
+    "avg_holding_days": 14.0,
+    "exit_stats": {
+      "止盈": {
+        "count": 1,
+        "avg_return": 19.88,
+        "win_rate": 100.0
+      },
+      "止損": {
+        "count": 1,
+        "avg_return": -9.38,
+        "win_rate": 0.0
+      }
+    },
+    "confidence_stats": {
+      "A": {
+        "count": 1,
+        "win_rate": 0.0,
+        "avg_return": -9.38
+      },
+      "B": {
+        "count": 1,
+        "win_rate": 100.0,
+        "avg_return": 19.88
+      }
+    },
+    "best": "0883.HK (+19.9%)",
+    "worst": "2020.HK (-9.4%)"
+  },
+  "comparison": {
+    "v1_wr": 57.8,
+    "v2_wr": 67.9,
+    "v3_wr": 47.2
+  }
+}

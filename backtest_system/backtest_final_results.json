@@ -1,0 +1,9 @@
+{
+  "version": "final_no_bias",
+  "generated_at": "2026-03-29T00:21:24.945956",
+  "data_sources": "SimFin歷史財報 + Tiingo歷史股價 + FRED歷史宏觀",
+  "win_rate": 44.8,
+  "avg_return": -0.48,
+  "profit_factor": 0.93,
+  "total_trades": 67
+}
