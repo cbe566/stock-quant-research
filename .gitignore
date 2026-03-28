@@ -3,3 +3,6 @@ __pycache__/
 .DS_Store
 .env
 *.tmp
+*.mp4
+*.MP4
+*.mov
