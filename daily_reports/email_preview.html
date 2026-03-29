@@ -1,0 +1,140 @@
+<html>
+<head>
+<style>
+body { font-family: -apple-system, 'Helvetica Neue', Arial, 'PingFang SC', sans-serif; color: #1a1a1a; margin: 0; padding: 0; background: #f9fafb; }
+.container { max-width: 680px; margin: 0 auto; background: #ffffff; }
+.header { background: #1B2A4A; padding: 24px 30px; }
+.header h1 { color: #ffffff; font-size: 20px; margin: 0 0 4px 0; font-weight: 600; }
+.header .date { color: #93C5FD; font-size: 13px; margin: 0; }
+.body-content { padding: 24px 30px; }
+.market-block { margin-bottom: 24px; }
+.market-title { font-size: 16px; font-weight: 700; color: #1B2A4A; border-bottom: 2px solid #1B2A4A; padding-bottom: 6px; margin-bottom: 12px; }
+.sentiment { font-size: 12px; color: #6B7280; margin-bottom: 10px; }
+.direction { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+.dir-bull { background: #ECFDF5; color: #059669; }
+.dir-bear { background: #FEF2F2; color: #DC2626; }
+table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+th { background: #F3F4F6; color: #374151; font-size: 11px; padding: 6px 8px; text-align: center; border-bottom: 1px solid #D1D5DB; }
+td { font-size: 12px; padding: 5px 8px; text-align: center; border-bottom: 1px solid #F3F4F6; }
+td.ticker { font-weight: 600; text-align: left; }
+td.name { text-align: left; color: #374151; }
+td.signal { text-align: left; font-size: 11px; color: #6B7280; }
+.label-buy { color: #059669; font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+.label-sell { color: #DC2626; font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+.pdf-note { background: #EFF6FF; border-radius: 6px; padding: 14px 18px; margin: 20px 0; font-size: 13px; color: #1E40AF; }
+.footer { padding: 20px 30px; border-top: 1px solid #E5E7EB; }
+.sig { font-size: 12px; color: #374151; line-height: 1.8; }
+.sig strong { font-size: 13px; }
+.company { font-size: 11px; color: #9CA3AF; line-height: 1.6; margin-top: 12px; }
+.disclaimer { font-size: 10px; color: #9CA3AF; line-height: 1.5; margin-top: 12px; padding-top: 12px; border-top: 1px solid #F3F4F6; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="header">
+  <h1>每日全球股票篩選報告</h1>
+  <p class="date">2026年3月29日（星期日） ｜ 美股 · 港股 · 台股 · 日股</p>
+</div>
+
+<div class="body-content">
+
+<div class="market-block">
+  <div class="market-title">🇺🇸 美股</div>
+  <div class="sentiment">篩選 54 隻 ｜ 看多 18 · 看空 1 ｜ <span class="direction dir-bull">偏多 +1.8</span></div>
+  <p class="label-buy">▲ 買入關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">GOOGL</td><td class="name">Alphabet Inc</td><td>274.34</td><td><span style="color:#059669;font-weight:bold">+8</span></td><td class="signal">QVM高分(70.5)、極度超賣(Z=-2.8)</td></tr>
+  <tr><td class="ticker">MU</td><td class="name">Micron Techn</td><td>357.22</td><td><span style="color:#059669;font-weight:bold">+7</span></td><td class="signal">QVM高分(82.5)、超賣(Z=-1.6)</td></tr>
+  <tr><td class="ticker">JNJ</td><td class="name">Johnson & Jo</td><td>240.45</td><td><span style="color:#059669;font-weight:bold">+5</span></td><td class="signal">QVM高分(72.0)、F-Score高(8/9)</td></tr>
+  </table>
+  <p class="label-sell">▼ 賣出關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">JPM</td><td class="name">JP Morgan Ch</td><td>282.84</td><td><span style="color:#DC2626;font-weight:bold">-3</span></td><td class="signal">QVM低分(29.8)、超賣(Z=-1.4)</td></tr>
+  <tr><td class="ticker">HD</td><td class="name">Home Depot, </td><td>321.65</td><td><span style="color:#B91C1C;font-weight:bold">-2</span></td><td class="signal">QVM低分(33.2)、超賣(Z=-1.4)</td></tr>
+  <tr><td class="ticker">LOW</td><td class="name">Lowe's Compa</td><td>230.31</td><td><span style="color:#B91C1C;font-weight:bold">-2</span></td><td class="signal">QVM低分(19.2)、超賣(Z=-1.1)</td></tr>
+  </table>
+</div>
+
+<div class="market-block">
+  <div class="market-title">🇭🇰 港股</div>
+  <div class="sentiment">篩選 40 隻 ｜ 看多 14 · 看空 5 ｜ <span class="direction dir-bull">偏多 +1.2</span></div>
+  <p class="label-buy">▲ 買入關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">2628&#8203;.HK</td><td class="name">CHINA LIFE</td><td>25.00</td><td><span style="color:#059669;font-weight:bold">+6</span></td><td class="signal">QVM高分(74.5)、極度超賣(Z=-2.2)</td></tr>
+  <tr><td class="ticker">0016&#8203;.HK</td><td class="name">SHK PPT</td><td>128.80</td><td><span style="color:#059669;font-weight:bold">+6</span></td><td class="signal">QVM高分(73.8)、超賣(Z=-1.3)</td></tr>
+  <tr><td class="ticker">1024&#8203;.HK</td><td class="name">KUAISHOU-W</td><td>46.08</td><td><span style="color:#059669;font-weight:bold">+5</span></td><td class="signal">極度超賣(Z=-2.2)、F-Score高(8/9)</td></tr>
+  </table>
+  <p class="label-sell">▼ 賣出關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">2015&#8203;.HK</td><td class="name">LI AUTO-W</td><td>70.05</td><td><span style="color:#DC2626;font-weight:bold">-5</span></td><td class="signal">QVM低分(29.5)、超買(Z=1.0)</td></tr>
+  <tr><td class="ticker">1211&#8203;.HK</td><td class="name">BYD COMPANY</td><td>106.50</td><td><span style="color:#DC2626;font-weight:bold">-5</span></td><td class="signal">QVM低分(34.8)、超買(Z=1.4)</td></tr>
+  <tr><td class="ticker">3690&#8203;.HK</td><td class="name">MEITUAN-W</td><td>85.90</td><td><span style="color:#DC2626;font-weight:bold">-4</span></td><td class="signal">QVM低分(26.0)、超買(Z=1.7)</td></tr>
+  </table>
+</div>
+
+<div class="market-block">
+  <div class="market-title">🇹🇼 台股</div>
+  <div class="sentiment">篩選 40 隻 ｜ 看多 9 · 看空 3 ｜ <span class="direction" style="background:#F3F4F6;color:#6B7280">中性 +0.7</span></div>
+  <p class="label-buy">▲ 買入關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">2454&#8203;.TW</td><td class="name">MEDIATEK INC</td><td>1,585.00</td><td><span style="color:#059669;font-weight:bold">+7</span></td><td class="signal">QVM高分(70.5)、超賣(Z=-1.6)</td></tr>
+  <tr><td class="ticker">2330&#8203;.TW</td><td class="name">TAIWAN SEMIC</td><td>1,820.00</td><td><span style="color:#059669;font-weight:bold">+5</span></td><td class="signal">QVM高分(75.5)、F-Score高(8/9)</td></tr>
+  <tr><td class="ticker">2303&#8203;.TW</td><td class="name">UNITED MICRO</td><td>57.80</td><td><span style="color:#059669;font-weight:bold">+5</span></td><td class="signal">QVM高分(80.8)、超賣(Z=-1.1)</td></tr>
+  </table>
+  <p class="label-sell">▼ 賣出關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">2474&#8203;.TW</td><td class="name">CATCHER TECH</td><td>192.50</td><td><span style="color:#DC2626;font-weight:bold">-4</span></td><td class="signal">技術面轉空、極度超買(Z=2.0)</td></tr>
+  <tr><td class="ticker">2886&#8203;.TW</td><td class="name">MEGA FINANCI</td><td>39.10</td><td><span style="color:#DC2626;font-weight:bold">-3</span></td><td class="signal">QVM低分(26.0)</td></tr>
+  <tr><td class="ticker">5880&#8203;.TW</td><td class="name">TAIWAN COOPE</td><td>23.40</td><td><span style="color:#DC2626;font-weight:bold">-3</span></td><td class="signal">QVM低分(33.0)</td></tr>
+  </table>
+</div>
+
+<div class="market-block">
+  <div class="market-title">🇯🇵 日股</div>
+  <div class="sentiment">篩選 40 隻 ｜ 看多 8 · 看空 3 ｜ <span class="direction" style="background:#F3F4F6;color:#6B7280">中性 +0.9</span></div>
+  <p class="label-buy">▲ 買入關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">6723&#8203;.T</td><td class="name">RENESAS ELEC</td><td>2,354.50</td><td><span style="color:#059669;font-weight:bold">+6</span></td><td class="signal">QVM高分(75.5)、超賣(Z=-1.1)</td></tr>
+  <tr><td class="ticker">6857&#8203;.T</td><td class="name">ADVANTEST CO</td><td>22,070.00</td><td><span style="color:#059669;font-weight:bold">+4</span></td><td class="signal">超賣(Z=-1.7)、F-Score高(8/9)</td></tr>
+  <tr><td class="ticker">7741&#8203;.T</td><td class="name">HOYA CORP</td><td>27,280.00</td><td><span style="color:#059669;font-weight:bold">+4</span></td><td class="signal">超賣(Z=-1.2)、F-Score高(8/9)</td></tr>
+  </table>
+  <p class="label-sell">▼ 賣出關注</p>
+  <table><tr><th>代碼</th><th>名稱</th><th>現價</th><th>得分</th><th>核心信號</th></tr>
+  <tr><td class="ticker">7201&#8203;.T</td><td class="name">NISSAN MOTOR</td><td>348.70</td><td><span style="color:#DC2626;font-weight:bold">-4</span></td><td class="signal">QVM低分(25.5)、F-Score低(3/9)</td></tr>
+  <tr><td class="ticker">7974&#8203;.T</td><td class="name">NINTENDO CO </td><td>9,215.00</td><td><span style="color:#DC2626;font-weight:bold">-4</span></td><td class="signal">QVM低分(31.2)、技術面弱勢(-60)</td></tr>
+  <tr><td class="ticker">7267&#8203;.T</td><td class="name">HONDA MOTOR </td><td>1,340.00</td><td><span style="color:#DC2626;font-weight:bold">-3</span></td><td class="signal">QVM低分(31.5)</td></tr>
+  </table>
+</div>
+
+<div class="pdf-note">
+  📎 完整報告（含各市場 TOP 10 買入/賣出詳細分析）請見附件 PDF
+</div>
+
+</div>
+
+<div class="footer">
+  <div class="sig">
+    <strong>何宣逸</strong><br>
+    副總裁 ｜ 私人財富管理部<br>
+    華泰金融控股（香港）有限公司<br>
+    電話：+852 3658 6180 ｜ 手機：+852 6765 0336 / +86 130 0329 5233<br>
+    電郵：jamieho@htsc.com
+  </div>
+  <div class="company">
+    地址：香港皇后大道中99號中環中心69樓<br>
+    華泰證券股份有限公司全資附屬公司 (SSE: 601688; SEHK: 6886; LSE: HTSC)
+  </div>
+  <div class="company">
+    報告製作時間：2026-03-29 23:01 (UTC+8)<br>
+    資料來源：Yahoo Finance、FMP、Finnhub、Tiingo、Twelve Data、TWSE<br>
+    量化模型：QVM 多因子評分 × 技術面信號 × 均值回歸 × Piotroski F-Score
+  </div>
+  <div class="disclaimer">
+    本報告僅供參考，不構成任何投資建議。投資有風險，入市需謹慎。
+  </div>
+</div>
+
+</div>
+</body>
+</html>
