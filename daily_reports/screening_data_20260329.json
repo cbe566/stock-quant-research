@@ -1,6 +1,6 @@
 {
   "date": "2026-03-29",
-  "generated_at": "2026-03-29T22:15:11.307945",
+  "generated_at": "2026-03-29T14:34:03.899913",
   "markets": {
     "美股": [
       {
@@ -1865,6 +1865,28 @@
         "upside_pct": 33.0
       },
       {
+        "ticker": "2388.HK",
+        "name": "BOC HONG KONG",
+        "sector": "Financial Services",
+        "current_price": 40.96,
+        "total_score": 1,
+        "buy_score": 58,
+        "sell_score": 42,
+        "signals": [],
+        "quality": 20.0,
+        "value": 80.0,
+        "momentum": 100.0,
+        "f_score": 4,
+        "recommendation": "買入",
+        "tech_signal": 0.0,
+        "tech_5d": 21.6,
+        "tech_direction": "觀望",
+        "zscore": -0.87,
+        "mr_signal": "中性",
+        "analyst_target": 42.99,
+        "upside_pct": 5.0
+      },
+      {
         "ticker": "0017.HK",
         "name": "NEW WORLD DEV",
         "sector": "Real Estate",
@@ -2283,24 +2305,6 @@
         "upside_pct": 29.7
       },
       {
-        "ticker": "0011.HK",
-        "name": "0011.HK",
-        "sector": "",
-        "current_price": null,
-        "total_score": -4,
-        "buy_score": 18,
-        "sell_score": 82,
-        "signals": [
-          "QVM低分(0.0)",
-          "F-Score低(0/9)"
-        ],
-        "quality": 0.0,
-        "value": 0.0,
-        "momentum": 0.0,
-        "f_score": 0,
-        "recommendation": "賣出"
-      },
-      {
         "ticker": "2015.HK",
         "name": "LI AUTO-W",
         "sector": "Consumer Cyclical",
@@ -2432,6 +2436,32 @@
         "mr_signal": "觀察買入",
         "analyst_target": 62.05,
         "upside_pct": 7.4
+      },
+      {
+        "ticker": "2344.TW",
+        "name": "WINBOND ELECTRONIC CORP",
+        "sector": "Technology",
+        "current_price": 92.4,
+        "total_score": 4,
+        "buy_score": 82,
+        "sell_score": 18,
+        "signals": [
+          "超賣(Z=-1.7)",
+          "F-Score高(7/9)",
+          "目標價上行74.9%"
+        ],
+        "quality": 45.0,
+        "value": 65.0,
+        "momentum": 100.0,
+        "f_score": 7,
+        "recommendation": "買入",
+        "tech_signal": 8.0,
+        "tech_5d": 18.4,
+        "tech_direction": "觀望",
+        "zscore": -1.71,
+        "mr_signal": "觀察買入",
+        "analyst_target": 161.6,
+        "upside_pct": 74.9
       },
       {
         "ticker": "2882.TW",
@@ -2958,6 +2988,32 @@
         "upside_pct": 15.8
       },
       {
+        "ticker": "3661.TW",
+        "name": "ALCHIP TECHNOLOGIES LIMITD",
+        "sector": "Technology",
+        "current_price": 3040.0,
+        "total_score": -1,
+        "buy_score": 42,
+        "sell_score": 58,
+        "signals": [
+          "技術面弱勢(-42)",
+          "超賣(Z=-1.3)",
+          "目標價上行45.3%"
+        ],
+        "quality": 65.0,
+        "value": 30.0,
+        "momentum": 16.7,
+        "f_score": 6,
+        "recommendation": "減持",
+        "tech_signal": -42.0,
+        "tech_5d": -38.8,
+        "tech_direction": "賣出",
+        "zscore": -1.33,
+        "mr_signal": "觀察買入",
+        "analyst_target": 4417.0,
+        "upside_pct": 45.3
+      },
+      {
         "ticker": "2357.TW",
         "name": "ASUSTEK COMPUTER INC",
         "sector": "Technology",
@@ -3242,42 +3298,6 @@
         "tech_direction": "觀望",
         "zscore": 0.47,
         "mr_signal": "中性"
-      },
-      {
-        "ticker": "3529.TW",
-        "name": "3529.TW",
-        "sector": "",
-        "current_price": null,
-        "total_score": -4,
-        "buy_score": 18,
-        "sell_score": 82,
-        "signals": [
-          "QVM低分(0.0)",
-          "F-Score低(0/9)"
-        ],
-        "quality": 0.0,
-        "value": 0.0,
-        "momentum": 0.0,
-        "f_score": 0,
-        "recommendation": "賣出"
-      },
-      {
-        "ticker": "5274.TW",
-        "name": "5274.TW",
-        "sector": "",
-        "current_price": null,
-        "total_score": -4,
-        "buy_score": 18,
-        "sell_score": 82,
-        "signals": [
-          "QVM低分(0.0)",
-          "F-Score低(0/9)"
-        ],
-        "quality": 0.0,
-        "value": 0.0,
-        "momentum": 0.0,
-        "f_score": 0,
-        "recommendation": "賣出"
       },
       {
         "ticker": "2474.TW",
