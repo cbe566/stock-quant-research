@@ -1,0 +1,95 @@
+name: 每日全球股票篩選
+
+on:
+  schedule:
+    # 每天 UTC 22:28 = 台灣/香港 06:28 AM
+    - cron: '28 22 * * *'
+  workflow_dispatch:
+    # 允許手動觸發（方便測試）
+
+permissions:
+  contents: write
+
+env:
+  # 標記雲端環境
+  CI: 'true'
+  GITHUB_ACTIONS: 'true'
+  # API Keys（建議之後移到 GitHub Secrets）
+  FMP_API_KEY: ${{ secrets.FMP_API_KEY || 'GEouSGBbAoOgnERMR0GjENhKwFkxeEeW' }}
+  ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY || 'CYSEDIRPDGYNRD3H' }}
+  TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY || '685ced6c2b694a12b359beeec084e9cf' }}
+  FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY || 'd6nsik9r01qse5qmtl4gd6nsik9r01qse5qmtl50' }}
+  TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY || '981e9f863c8997d8e4ac01ca269c033295e4c1bb' }}
+  EOD_API_KEY: ${{ secrets.EOD_API_KEY || '69c7f5b716ce48.31162491' }}
+
+jobs:
+  daily-screening:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 📥 Checkout 程式碼
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐍 設定 Python 環境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 安裝依賴
+        run: |
+          pip install --upgrade pip
+          pip install yfinance pandas numpy requests
+
+      - name: 🔍 執行每日篩選
+        run: |
+          python3 daily_screening.py 2>&1 | tee screening_output.log
+        timeout-minutes: 25
+
+      - name: 📊 檢查報告是否生成
+        run: |
+          if [ -f "每日篩選報告_最新.md" ]; then
+            echo "✅ 報告生成成功"
+            echo "### 📈 每日篩選報告已生成" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            # 擷取報告前100行到 Summary
+            head -100 "每日篩選報告_最新.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ 報告生成失敗"
+            cat screening_output.log
+            exit 1
+          fi
+
+      - name: 💾 提交報告到 GitHub
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+          # 添加報告檔案
+          git add daily_reports/ "每日篩選報告_最新.md" || true
+
+          # 檢查是否有變更
+          if git diff --staged --quiet; then
+            echo "沒有新的變更需要提交"
+          else
+            DATE=$(date +"%Y-%m-%d")
+            git commit -m "📈 每日篩選報告 ${DATE} — GitHub Actions 自動生成"
+            git push
+            echo "✅ 報告已推送到 GitHub"
+          fi
+
+      - name: 📧 發送報告到 Email（可選）
+        if: always()
+        run: |
+          # 未來可接入 SendGrid / Gmail API 發送報告
+          # 目前先輸出到 Actions Summary，可以在 GitHub 上直接查看
+          echo "報告已發布到 GitHub Actions Summary"
+          echo "查看位置：Actions → 每日全球股票篩選 → 最新 run → Summary"
+
+      - name: 🧹 清理臨時檔案
+        if: always()
+        run: |
+          rm -f screening_output.log
