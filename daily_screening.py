@@ -1,0 +1,503 @@
+"""
+每日全球股票篩選系統
+====================
+每天自動執行 QVM 多因子 + 技術面 + 動量 + 均值回歸分析
+覆蓋：美股、港股、台股、日股
+每市場篩選：10 隻買入候選 + 10 隻賣出候選
+輸出：Markdown 報告（存檔 + 顯示）
+
+用法：
+  python daily_screening.py          # 完整篩選
+  python daily_screening.py --quick  # 快速模式（僅用緩存/縮小股池）
+"""
+
+import sys
+import os
+import json
+import time
+import traceback
+from datetime import datetime, timedelta
+from pathlib import Path
+
+# 確保可以 import backtest_system 模組
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backtest_system"))
+
+import pandas as pd
+import numpy as np
+import yfinance as yf
+import warnings
+warnings.filterwarnings('ignore')
+
+from data_engine import DataEngine
+from strategies import StrategyEngine
+from config import STRATEGY_PARAMS, FINNHUB_API_KEY, FMP_API_KEY
+
+# ==================== 全球股票池 ====================
+
+# 美股：覆蓋科技、金融、醫療、消費、工業、能源、半導體、高成長（~60隻）
+US_STOCKS = [
+    # 科技巨頭
+    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
+    # 金融
+    "JPM", "BAC", "GS", "MS", "BRK-B", "V", "MA",
+    # 醫療
+    "JNJ", "UNH", "PFE", "ABBV", "LLY", "TMO", "MRK",
+    # 消費
+    "WMT", "PG", "KO", "PEP", "MCD", "NKE", "SBUX",
+    # 工業 / 能源
+    "XOM", "CVX", "CAT", "BA", "GE", "HON", "UPS",
+    # 半導體
+    "AMD", "INTC", "AVGO", "QCOM", "MU", "AMAT", "LRCX",
+    # 高成長 / SaaS
+    "CRM", "NFLX", "ADBE", "NOW", "PANW", "SNOW", "UBER",
+    # 其他重要
+    "DIS", "PYPL", "COST", "HD", "LOW",
+]
+
+# 港股：恒指成分 + 中概科技 + 金融 + 地產（~40隻）
+HK_STOCKS = [
+    # 科技
+    "0700.HK", "9988.HK", "1810.HK", "3690.HK", "9618.HK",
+    "1024.HK", "9888.HK", "0020.HK", "2015.HK", "0772.HK",
+    # 金融
+    "0005.HK", "1398.HK", "3988.HK", "2318.HK", "0388.HK",
+    "1299.HK", "2628.HK", "3968.HK", "0939.HK", "2388.HK",
+    # 地產 / 公用
+    "0016.HK", "0001.HK", "0017.HK", "0012.HK", "0002.HK",
+    # 消費 / 醫療 / 工業
+    "0027.HK", "0175.HK", "1211.HK", "2020.HK", "0883.HK",
+    "0941.HK", "0066.HK", "2269.HK", "1093.HK", "0241.HK",
+    # 新經濟
+    "6060.HK", "9961.HK", "1833.HK", "2382.HK", "0268.HK",
+]
+
+# 台股：權值股 + 半導體 + 金融 + 傳產（~40隻）
+TW_STOCKS = [
+    # 半導體
+    "2330.TW", "2454.TW", "3711.TW", "2303.TW", "3034.TW",
+    "2379.TW", "6415.TW", "2344.TW", "2408.TW", "3661.TW",
+    # 電子
+    "2317.TW", "2382.TW", "3008.TW", "2357.TW", "2308.TW",
+    "2345.TW", "3037.TW", "2474.TW", "6505.TW", "4904.TW",
+    # 金融
+    "2881.TW", "2882.TW", "2884.TW", "2886.TW", "2891.TW",
+    "2892.TW", "2880.TW", "2883.TW", "5880.TW", "2887.TW",
+    # 傳產 / 航運 / 鋼鐵
+    "1301.TW", "1303.TW", "1326.TW", "2002.TW", "2207.TW",
+    "2603.TW", "2609.TW", "1101.TW", "2912.TW", "9910.TW",
+]
+
+# 日股：日經225重要成分（~40隻）
+JP_STOCKS = [
+    # 科技 / 半導體
+    "6758.T", "6861.T", "6857.T", "7741.T", "6367.T",
+    "4063.T", "6594.T", "6723.T", "6981.T", "7735.T",
+    # 汽車
+    "7203.T", "7267.T", "7269.T", "7201.T", "6902.T",
+    # 金融
+    "8306.T", "8316.T", "8411.T", "8766.T", "8035.T",
+    # 消費 / 零售
+    "9983.T", "9984.T", "4452.T", "2802.T", "7974.T",
+    # 工業 / 製造
+    "6501.T", "6503.T", "7011.T", "6301.T", "6752.T",
+    # 醫藥
+    "4502.T", "4503.T", "4568.T", "4519.T", "4578.T",
+    # 通訊 / 公用
+    "9432.T", "9433.T", "9434.T", "8001.T", "8058.T",
+]
+
+ALL_MARKETS = {
+    "美股": {"stocks": US_STOCKS, "benchmark": "SPY", "currency": "USD"},
+    "港股": {"stocks": HK_STOCKS, "benchmark": "^HSI", "currency": "HKD"},
+    "台股": {"stocks": TW_STOCKS, "benchmark": "^TWII", "currency": "TWD"},
+    "日股": {"stocks": JP_STOCKS, "benchmark": "^N225", "currency": "JPY"},
+}
+
+
+# ==================== 核心篩選引擎 ====================
+
+class DailyScreener:
+    """每日全球股票篩選器"""
+
+    def __init__(self):
+        self.de = DataEngine()
+        self.se = StrategyEngine(self.de)
+        self.today = datetime.now().strftime("%Y-%m-%d")
+        # 技術面需要 ~1 年數據
+        self.start_date = (datetime.now() - timedelta(days=400)).strftime("%Y-%m-%d")
+        self.results = {}
+        self.errors = []
+
+    def screen_single_stock(self, ticker):
+        """
+        對單隻股票執行完整六維度分析
+        回傳標準化的評分結果 dict，失敗回傳 None
+        """
+        try:
+            result = {
+                "ticker": ticker,
+                "name": "",
+                "sector": "",
+                "current_price": None,
+                "total_score": 0,        # 綜合得分（-10 ~ +10）
+                "buy_score": 0,           # 買入信號強度（0~100）
+                "sell_score": 0,          # 賣出信號強度（0~100）
+                "signals": [],            # 信號理由列表
+            }
+
+            # --- 1. 基本面 ---
+            info = self.de.get_stock_info(ticker)
+            if info:
+                result["name"] = info.get("shortName", info.get("longName", ticker))
+                result["sector"] = info.get("sector", "")
+
+            # --- 2. QVM 多因子評分 ---
+            mf = self.se.multifactor_score(ticker, STRATEGY_PARAMS["multifactor"])
+            mf_total = 50  # 預設中性
+            if mf:
+                mf_total = mf["total_score"]
+                result["quality"] = mf["quality_score"]
+                result["value"] = mf["value_score"]
+                result["momentum"] = mf["momentum_score"]
+                result["f_score"] = mf["f_score"]
+                result["recommendation"] = mf["recommendation"]
+
+                # 多因子信號
+                if mf_total >= 70:
+                    result["total_score"] += 3
+                    result["signals"].append(f"QVM高分({mf_total})")
+                elif mf_total >= 55:
+                    result["total_score"] += 1
+                elif mf_total < 35:
+                    result["total_score"] -= 3
+                    result["signals"].append(f"QVM低分({mf_total})")
+                elif mf_total < 45:
+                    result["total_score"] -= 1
+
+            # --- 3. 技術面信號 ---
+            try:
+                tech = self.se.technical_signals(ticker, self.start_date, self.today)
+                if not tech.empty and len(tech) > 5:
+                    latest = float(tech['total_signal'].iloc[-1])
+                    avg_5d = float(tech['total_signal'].iloc[-5:].mean())
+                    result["tech_signal"] = round(latest, 1)
+                    result["tech_5d"] = round(avg_5d, 1)
+                    result["tech_direction"] = tech['direction'].iloc[-1]
+
+                    if latest > 40:
+                        result["total_score"] += 2
+                        result["signals"].append(f"技術面強勢({latest:+.0f})")
+                    elif latest > 20:
+                        result["total_score"] += 1
+                    elif latest < -40:
+                        result["total_score"] -= 2
+                        result["signals"].append(f"技術面弱勢({latest:+.0f})")
+                    elif latest < -20:
+                        result["total_score"] -= 1
+
+                    # 趨勢轉折（5日均值 vs 最新）加分
+                    if latest > 20 and avg_5d < 0:
+                        result["total_score"] += 1
+                        result["signals"].append("技術面轉多")
+                    elif latest < -20 and avg_5d > 0:
+                        result["total_score"] -= 1
+                        result["signals"].append("技術面轉空")
+            except Exception:
+                pass
+
+            # --- 4. 均值回歸 ---
+            try:
+                mr = self.se.mean_reversion_signals(ticker, self.start_date, self.today)
+                if not mr.empty:
+                    z = float(mr['zscore'].iloc[-1])
+                    result["zscore"] = round(z, 2)
+                    result["mr_signal"] = mr['signal'].iloc[-1]
+
+                    if z < -2.0:
+                        result["total_score"] += 2
+                        result["signals"].append(f"極度超賣(Z={z:.1f})")
+                    elif z < -1.0:
+                        result["total_score"] += 1
+                        result["signals"].append(f"超賣(Z={z:.1f})")
+                    elif z > 2.0:
+                        result["total_score"] -= 2
+                        result["signals"].append(f"極度超買(Z={z:.1f})")
+                    elif z > 1.0:
+                        result["total_score"] -= 1
+                        result["signals"].append(f"超買(Z={z:.1f})")
+            except Exception:
+                pass
+
+            # --- 5. F-Score ---
+            f_score = result.get("f_score", 5)
+            if f_score >= 7:
+                result["total_score"] += 1
+                result["signals"].append(f"F-Score高({f_score}/9)")
+            elif f_score <= 3:
+                result["total_score"] -= 1
+                result["signals"].append(f"F-Score低({f_score}/9)")
+
+            # --- 6. 分析師目標價 ---
+            if info:
+                target = info.get("targetMeanPrice")
+                current = info.get("currentPrice") or info.get("regularMarketPrice")
+                if target and current and current > 0:
+                    upside = round((target / current - 1) * 100, 1)
+                    result["current_price"] = round(current, 2)
+                    result["analyst_target"] = round(target, 2)
+                    result["upside_pct"] = upside
+
+                    if upside > 25:
+                        result["total_score"] += 1
+                        result["signals"].append(f"目標價上行{upside}%")
+                    elif upside < -15:
+                        result["total_score"] -= 1
+                        result["signals"].append(f"目標價下行{upside}%")
+                elif current:
+                    result["current_price"] = round(current, 2)
+
+            # --- 計算買入/賣出分數 ---
+            s = result["total_score"]
+            result["buy_score"] = max(0, min(100, 50 + s * 8))
+            result["sell_score"] = max(0, min(100, 50 - s * 8))
+
+            return result
+
+        except Exception as e:
+            self.errors.append(f"{ticker}: {str(e)}")
+            return None
+
+    def screen_market(self, market_name, stocks):
+        """篩選整個市場，回傳排序後的結果"""
+        print(f"\n{'='*60}")
+        print(f"  正在篩選 {market_name}（{len(stocks)} 隻股票）...")
+        print(f"{'='*60}")
+
+        results = []
+        total = len(stocks)
+
+        for i, ticker in enumerate(stocks, 1):
+            print(f"  [{i}/{total}] {ticker}...", end=" ", flush=True)
+            r = self.screen_single_stock(ticker)
+            if r:
+                results.append(r)
+                score = r['total_score']
+                indicator = "🟢" if score >= 3 else ("🔴" if score <= -3 else "⚪")
+                print(f"{indicator} 得分:{score:+d}  {r.get('name', '')[:20]}")
+            else:
+                print("❌ 失敗")
+
+            # yfinance 速率控制：避免被封
+            if i % 10 == 0:
+                time.sleep(1)
+
+        # 排序
+        results.sort(key=lambda x: x["total_score"], reverse=True)
+        return results
+
+    def run_full_screening(self):
+        """執行全部四大市場篩選"""
+        start_time = time.time()
+        print(f"\n{'#'*60}")
+        print(f"  每日全球股票篩選系統")
+        print(f"  執行時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"{'#'*60}")
+
+        for market_name, config in ALL_MARKETS.items():
+            try:
+                results = self.screen_market(market_name, config["stocks"])
+                self.results[market_name] = results
+            except Exception as e:
+                print(f"\n  ⚠️ {market_name} 篩選出錯：{e}")
+                self.errors.append(f"{market_name}: {str(e)}")
+
+        elapsed = time.time() - start_time
+        print(f"\n✅ 全部篩選完成，耗時 {elapsed/60:.1f} 分鐘")
+        if self.errors:
+            print(f"⚠️ 有 {len(self.errors)} 個錯誤")
+
+        return self.results
+
+    def generate_report(self):
+        """生成 Markdown 報告"""
+        today_str = datetime.now().strftime("%Y年%m月%d日")
+        weekdays = ["一", "二", "三", "四", "五", "六", "日"]
+        weekday = weekdays[datetime.now().weekday()]
+
+        lines = []
+        lines.append(f"# 每日全球股票篩選報告")
+        lines.append(f"")
+        lines.append(f"**日期**：{today_str}（星期{weekday}）")
+        lines.append(f"**生成時間**：{datetime.now().strftime('%H:%M:%S')}")
+        lines.append(f"**篩選模型**：QVM多因子 + 技術面 + 動量 + 均值回歸 + F-Score + 分析師目標價")
+        lines.append(f"")
+        lines.append(f"---")
+
+        for market_name, results in self.results.items():
+            if not results:
+                lines.append(f"\n## {market_name}")
+                lines.append(f"\n> ⚠️ 本市場無有效篩選結果\n")
+                continue
+
+            lines.append(f"\n## {market_name}")
+            lines.append(f"")
+
+            # === 買入候選 TOP 10 ===
+            buy_list = [r for r in results if r["total_score"] > 0]
+            buy_top = buy_list[:10] if buy_list else results[:10]
+
+            lines.append(f"### 🟢 買入關注（TOP 10）")
+            lines.append(f"")
+            lines.append(f"| 排名 | 代碼 | 名稱 | 現價 | 綜合得分 | QVM | 技術面 | Z-Score | 信號摘要 |")
+            lines.append(f"|:---:|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---|")
+
+            for i, r in enumerate(buy_top[:10], 1):
+                ticker = r["ticker"]
+                name = (r.get("name", "") or "")[:15]
+                price = r.get("current_price", "—")
+                if isinstance(price, (int, float)):
+                    price = f"{price:,.2f}"
+                score = r["total_score"]
+                qvm = r.get("quality", "—")
+                if isinstance(qvm, (int, float)):
+                    qvm = f"{qvm:.0f}"
+                tech = r.get("tech_signal", "—")
+                if isinstance(tech, (int, float)):
+                    tech = f"{tech:+.0f}"
+                z = r.get("zscore", "—")
+                if isinstance(z, (int, float)):
+                    z = f"{z:.1f}"
+                signals = "、".join(r.get("signals", [])[:3]) or "—"
+                lines.append(f"| {i} | **{ticker}** | {name} | {price} | **{score:+d}** | {qvm} | {tech} | {z} | {signals} |")
+
+            lines.append(f"")
+
+            # === 賣出候選 TOP 10 ===
+            sell_list = sorted(results, key=lambda x: x["total_score"])
+            sell_list = [r for r in sell_list if r["total_score"] < 0]
+            sell_top = sell_list[:10] if sell_list else sorted(results, key=lambda x: x["total_score"])[:10]
+
+            lines.append(f"### 🔴 賣出關注（TOP 10）")
+            lines.append(f"")
+            lines.append(f"| 排名 | 代碼 | 名稱 | 現價 | 綜合得分 | QVM | 技術面 | Z-Score | 信號摘要 |")
+            lines.append(f"|:---:|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---|")
+
+            for i, r in enumerate(sell_top[:10], 1):
+                ticker = r["ticker"]
+                name = (r.get("name", "") or "")[:15]
+                price = r.get("current_price", "—")
+                if isinstance(price, (int, float)):
+                    price = f"{price:,.2f}"
+                score = r["total_score"]
+                qvm = r.get("quality", "—")
+                if isinstance(qvm, (int, float)):
+                    qvm = f"{qvm:.0f}"
+                tech = r.get("tech_signal", "—")
+                if isinstance(tech, (int, float)):
+                    tech = f"{tech:+.0f}"
+                z = r.get("zscore", "—")
+                if isinstance(z, (int, float)):
+                    z = f"{z:.1f}"
+                signals = "、".join(r.get("signals", [])[:3]) or "—"
+                lines.append(f"| {i} | **{ticker}** | {name} | {price} | **{score:+d}** | {qvm} | {tech} | {z} | {signals} |")
+
+            lines.append(f"")
+
+            # === 市場概覽統計 ===
+            total_stocks = len(results)
+            bullish = len([r for r in results if r["total_score"] >= 3])
+            bearish = len([r for r in results if r["total_score"] <= -3])
+            neutral = total_stocks - bullish - bearish
+            avg_score = sum(r["total_score"] for r in results) / total_stocks if total_stocks > 0 else 0
+
+            lines.append(f"**市場情緒**：看多 {bullish} | 中性 {neutral} | 看空 {bearish} | 平均得分 {avg_score:+.1f}")
+            lines.append(f"")
+            lines.append(f"---")
+
+        # === 風險提醒 ===
+        lines.append(f"\n## ⚠️ 風險提醒")
+        lines.append(f"")
+        lines.append(f"- 本報告為量化模型自動生成，僅供研究參考，不構成投資建議")
+        lines.append(f"- 買入/賣出信號基於歷史數據回溯，不保證未來表現")
+        lines.append(f"- 投資前請結合宏觀環境、個股基本面、市場情緒做綜合判斷")
+        lines.append(f"- 嚴格執行風控：單股不超過10%、組合止損15%、個股止損8%")
+        lines.append(f"")
+
+        # === 錯誤日誌 ===
+        if self.errors:
+            lines.append(f"\n## 📋 執行日誌")
+            lines.append(f"")
+            lines.append(f"以下股票篩選時出現問題（共 {len(self.errors)} 個）：")
+            for err in self.errors[:20]:
+                lines.append(f"- {err}")
+            lines.append(f"")
+
+        lines.append(f"\n---")
+        lines.append(f"*報告由 QVM 量化篩選系統自動生成 | {datetime.now().strftime('%Y-%m-%d %H:%M')}*")
+
+        return "\n".join(lines)
+
+    def save_report(self):
+        """儲存報告到檔案"""
+        report = self.generate_report()
+        date_str = datetime.now().strftime("%Y%m%d")
+
+        # 儲存 Markdown 報告
+        report_dir = Path(__file__).parent / "daily_reports"
+        report_dir.mkdir(exist_ok=True)
+
+        md_path = report_dir / f"每日篩選報告_{date_str}.md"
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(report)
+        print(f"\n📄 報告已儲存：{md_path}")
+
+        # 同時儲存 JSON 原始數據（方便後續分析）
+        json_path = report_dir / f"screening_data_{date_str}.json"
+        json_data = {
+            "date": self.today,
+            "generated_at": datetime.now().isoformat(),
+            "markets": {},
+            "errors": self.errors,
+        }
+        for market, results in self.results.items():
+            json_data["markets"][market] = results
+
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2, default=str)
+        print(f"📊 數據已儲存：{json_path}")
+
+        # 也在根目錄放一份「最新報告」方便查看
+        latest_path = Path(__file__).parent / "每日篩選報告_最新.md"
+        with open(latest_path, "w", encoding="utf-8") as f:
+            f.write(report)
+
+        return str(md_path), report
+
+
+# ==================== 主程式入口 ====================
+
+def main():
+    """主程式"""
+    screener = DailyScreener()
+
+    # 檢查是否是交易日（簡單判斷：週六日跳過）
+    weekday = datetime.now().weekday()
+    if weekday >= 5:
+        print(f"⚠️ 今天是週{'六' if weekday == 5 else '日'}，非交易日")
+        print("仍然執行篩選（使用最新收盤數據）...")
+
+    # 執行篩選
+    screener.run_full_screening()
+
+    # 生成並儲存報告
+    md_path, report = screener.save_report()
+
+    # 輸出報告內容
+    print(f"\n{'='*60}")
+    print(report)
+
+    return md_path
+
+
+if __name__ == "__main__":
+    main()
