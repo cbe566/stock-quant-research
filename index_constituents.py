@@ -218,41 +218,35 @@ def get_hk_stocks():
 # ==================== 台股 ====================
 
 def get_twse():
-    """台灣加權指數主要成分股（台灣50 + 中型100 + 重要個股）"""
-    cached = _load_cache("twse")
+    """台灣加權指數全部上市股票（透過 TWSE Open API 動態抓取）"""
+    cached = _load_cache("twse_full")
     if cached:
+        print(f"  台股（快取）: {len(cached)} 隻")
         return cached
 
-    # 台灣50 + 中型100 + 其他重要成分股（完整清單）
-    tickers = [
-        # 台灣50 成分股
-        "2330.TW", "2454.TW", "2317.TW", "2382.TW", "2308.TW",
-        "2881.TW", "2882.TW", "2891.TW", "2886.TW", "3711.TW",
-        "2303.TW", "1301.TW", "1303.TW", "1326.TW", "2002.TW",
-        "2912.TW", "5880.TW", "2207.TW", "3008.TW", "2884.TW",
-        "2357.TW", "2345.TW", "1101.TW", "2880.TW", "2883.TW",
-        "2887.TW", "6505.TW", "2892.TW", "4904.TW", "3034.TW",
-        "2885.TW", "5871.TW", "2801.TW", "1216.TW", "9910.TW",
-        "2603.TW", "2609.TW", "2615.TW", "3037.TW", "2474.TW",
-        "2379.TW", "6415.TW", "2344.TW", "3661.TW", "2408.TW",
-        "1590.TW", "4938.TW", "2049.TW", "3443.TW", "5347.TW",
-        # 中型100 + 其他重要
-        "2356.TW", "2360.TW", "3231.TW", "6669.TW", "3706.TW",
-        "8046.TW", "2888.TW", "2834.TW", "5876.TW", "2105.TW",
-        "9904.TW", "1402.TW", "2327.TW", "3702.TW", "2301.TW",
-        "6488.TW", "2395.TW", "4958.TW", "2377.TW", "3044.TW",
-        "2542.TW", "3045.TW", "6446.TW", "2347.TW", "2409.TW",
-        "6770.TW", "2912.TW", "5269.TW", "3023.TW", "2618.TW",
-        "2006.TW", "1476.TW", "2324.TW", "8069.TW", "3529.TW",
-        "2376.TW", "2353.TW", "6176.TW", "2337.TW", "3035.TW",
-        "3532.TW", "2368.TW", "6239.TW", "2354.TW", "6531.TW",
-        "3036.TW", "2383.TW", "4966.TW", "8150.TW", "2371.TW",
-    ]
+    try:
+        url = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"
+        resp = requests.get(url, timeout=15, verify=False)
+        if resp.status_code == 200:
+            data = resp.json()
+            tickers = set()
+            for item in data:
+                code = item.get("Code", "")
+                # 只取4位數字代碼（排除ETF等）
+                if code.isdigit() and len(code) == 4:
+                    tickers.add(f"{code}.TW")
 
-    result = sorted(list(set(tickers)))
-    _save_cache("twse", result)
-    print(f"  台股加權指數: {len(result)} 隻")
-    return result
+            result = sorted(list(tickers))
+            _save_cache("twse_full", result)
+            print(f"  台股加權指數: {len(result)} 隻")
+            return result
+    except Exception as e:
+        print(f"  台股 TWSE API 失敗: {e}")
+
+    # Fallback：使用靜態清單
+    fallback = ["2330.TW", "2454.TW", "2317.TW", "2303.TW", "2881.TW", "2882.TW"]
+    print(f"  台股（備援）: {len(fallback)} 隻")
+    return fallback
 
 
 def get_tw_stocks():
@@ -263,13 +257,47 @@ def get_tw_stocks():
 
 # ==================== 日股 ====================
 
-def get_nikkei225():
-    """日經225 + 東證主要成分股"""
-    cached = _load_cache("nikkei225_full")
+def get_jpx_prime():
+    """從 JPX 官方抓取東證 Prime + Standard 全部上市股"""
+    cached = _load_cache("jpx_full")
     if cached:
+        print(f"  日股（快取）: {len(cached)} 隻")
         return cached
 
-    # 日經225 完整成分股（按產業分類）
+    try:
+        url = "https://www.jpx.co.jp/markets/statistics-equities/misc/tvdivq0000001vg2-att/data_j.xls"
+        resp = requests.get(url, headers={"User-Agent": UA}, timeout=15, verify=False)
+        if resp.status_code == 200:
+            import pandas as _pd
+            from io import BytesIO
+            df = _pd.read_excel(BytesIO(resp.content))
+            market_col = "市場・商品区分"
+            code_col = "コード"
+
+            # 只取 Prime + Standard（排除 ETF、REIT、Growth）
+            prime_std = df[df[market_col].str.contains("プライム|スタンダード", na=False)]
+            tickers = []
+            for c in prime_std[code_col].dropna().tolist():
+                try:
+                    num = int(c)
+                    if 1000 <= num <= 9999:
+                        tickers.append(f"{num}.T")
+                except (ValueError, TypeError):
+                    continue
+
+            result = sorted(list(set(tickers)))
+            _save_cache("jpx_full", result)
+            print(f"  日股 Prime+Standard: {len(result)} 隻")
+            return result
+    except Exception as e:
+        print(f"  JPX API 失敗: {e}")
+
+    # Fallback：靜態日經225
+    return _get_nikkei225_static()
+
+
+def _get_nikkei225_static():
+    """日經225 靜態清單（備援）"""
     tickers = [
         # 科技 / 精密
         "6758.T", "6861.T", "6857.T", "7741.T", "6723.T",
@@ -334,9 +362,9 @@ def get_nikkei225():
 
 
 def get_jp_stocks():
-    """日股全部：日經225 + 東證"""
+    """日股全部：東證 Prime + Standard"""
     print("抓取日股成分股...")
-    return get_nikkei225()
+    return get_jpx_prime()
 
 
 # ==================== 統一入口 ====================
