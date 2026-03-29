@@ -9,7 +9,7 @@
   - 郵件正文簡潔，一目瞭然
   - 股票代碼防超連結處理
   - 無任何 GitHub / 自動化字眼
-  - 底部署名：華泰金融控股
+  - 底部署名：個人名片
 """
 
 import json
@@ -174,15 +174,9 @@ td.signal {{ text-align: left; font-size: 11px; color: #6B7280; }}
 
 <div class="footer">
   <div class="sig">
-    <strong>何宣逸</strong><br>
-    副總裁 ｜ 私人財富管理部<br>
-    華泰金融控股（香港）有限公司<br>
-    電話：+852 3658 6180 ｜ 手機：+852 6765 0336 / +86 130 0329 5233<br>
-    電郵：jamieho@htsc.com
-  </div>
-  <div class="company">
-    地址：香港皇后大道中99號中環中心69樓<br>
-    華泰證券股份有限公司全資附屬公司 (SSE: 601688; SEHK: 6886; LSE: HTSC)
+    <strong>何宣逸 Jamie Ho</strong><br>
+    手機：+852 6765 0336 / +86 130 0329 5233<br>
+    電郵：cbe566@gmail.com
   </div>
   <div class="company">
     報告製作時間：{time_str}<br>
@@ -233,8 +227,8 @@ def generate_email_plain(json_path):
 
     lines.append("完整報告請見附件 PDF")
     lines.append("")
-    lines.append("何宣逸 | 副總裁 | 私人財富管理部")
-    lines.append("華泰金融控股（香港）有限公司")
+    lines.append("何宣逸 Jamie Ho")
+    lines.append("手機：+852 6765 0336 / +86 130 0329 5233")
     lines.append("本報告僅供參考，不構成任何投資建議。")
 
     return "\n".join(lines)

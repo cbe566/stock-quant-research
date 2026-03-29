@@ -64,86 +64,11 @@ if IS_CLOUD:
 else:
     from strategies import StrategyEngine
 
-# ==================== 全球股票池 ====================
+# ==================== 全球股票池（動態抓取） ====================
+from index_constituents import get_all_constituents
 
-# 美股：覆蓋科技、金融、醫療、消費、工業、能源、半導體、高成長（~60隻）
-US_STOCKS = [
-    # 科技巨頭
-    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
-    # 金融
-    "JPM", "BAC", "GS", "MS", "BRK-B", "V", "MA",
-    # 醫療
-    "JNJ", "UNH", "PFE", "ABBV", "LLY", "TMO", "MRK",
-    # 消費
-    "WMT", "PG", "KO", "PEP", "MCD", "NKE", "SBUX",
-    # 工業 / 能源
-    "XOM", "CVX", "CAT", "BA", "GE", "HON", "UPS",
-    # 半導體
-    "AMD", "INTC", "AVGO", "QCOM", "MU", "AMAT", "LRCX",
-    # 高成長 / SaaS
-    "CRM", "NFLX", "ADBE", "NOW", "PANW", "SNOW", "UBER",
-    # 其他重要
-    "DIS", "PYPL", "COST", "HD", "LOW",
-]
-
-# 港股：恒指成分 + 中概科技 + 金融 + 地產（~40隻）
-HK_STOCKS = [
-    # 科技
-    "0700.HK", "9988.HK", "1810.HK", "3690.HK", "9618.HK",
-    "1024.HK", "9888.HK", "0020.HK", "2015.HK", "0772.HK",
-    # 金融
-    "0005.HK", "1398.HK", "3988.HK", "2318.HK", "0388.HK",
-    "1299.HK", "2628.HK", "3968.HK", "0939.HK", "2388.HK",
-    # 地產 / 公用
-    "0016.HK", "0001.HK", "0017.HK", "0012.HK", "0002.HK",
-    # 消費 / 醫療 / 工業
-    "0027.HK", "0175.HK", "1211.HK", "2020.HK", "0883.HK",
-    "0941.HK", "0066.HK", "2269.HK", "1093.HK", "0241.HK",
-    # 新經濟
-    "6060.HK", "9961.HK", "1833.HK", "2382.HK", "0268.HK",
-]
-
-# 台股：權值股 + 半導體 + 金融 + 傳產（~40隻）
-TW_STOCKS = [
-    # 半導體
-    "2330.TW", "2454.TW", "3711.TW", "2303.TW", "3034.TW",
-    "2379.TW", "6415.TW", "2344.TW", "2408.TW", "3661.TW",
-    # 電子
-    "2317.TW", "2382.TW", "3008.TW", "2357.TW", "2308.TW",
-    "2345.TW", "3037.TW", "2474.TW", "6505.TW", "4904.TW",
-    # 金融
-    "2881.TW", "2882.TW", "2884.TW", "2886.TW", "2891.TW",
-    "2892.TW", "2880.TW", "2883.TW", "5880.TW", "2887.TW",
-    # 傳產 / 航運 / 鋼鐵
-    "1301.TW", "1303.TW", "1326.TW", "2002.TW", "2207.TW",
-    "2603.TW", "2609.TW", "1101.TW", "2912.TW", "9910.TW",
-]
-
-# 日股：日經225重要成分（~40隻）
-JP_STOCKS = [
-    # 科技 / 半導體
-    "6758.T", "6861.T", "6857.T", "7741.T", "6367.T",
-    "4063.T", "6594.T", "6723.T", "6981.T", "7735.T",
-    # 汽車
-    "7203.T", "7267.T", "7269.T", "7201.T", "6902.T",
-    # 金融
-    "8306.T", "8316.T", "8411.T", "8766.T", "8035.T",
-    # 消費 / 零售
-    "9983.T", "9984.T", "4452.T", "2802.T", "7974.T",
-    # 工業 / 製造
-    "6501.T", "6503.T", "7011.T", "6301.T", "6752.T",
-    # 醫藥
-    "4502.T", "4503.T", "4568.T", "4519.T", "4578.T",
-    # 通訊 / 公用
-    "9432.T", "9433.T", "9434.T", "8001.T", "8058.T",
-]
-
-ALL_MARKETS = {
-    "美股": {"stocks": US_STOCKS, "benchmark": "SPY", "currency": "USD"},
-    "港股": {"stocks": HK_STOCKS, "benchmark": "^HSI", "currency": "HKD"},
-    "台股": {"stocks": TW_STOCKS, "benchmark": "^TWII", "currency": "TWD"},
-    "日股": {"stocks": JP_STOCKS, "benchmark": "^N225", "currency": "JPY"},
-}
+# 動態獲取四大市場全部指數成分股
+ALL_MARKETS = get_all_constituents()
 
 
 # ==================== 核心篩選引擎 ====================
@@ -628,7 +553,7 @@ class DailyScreener:
             neutral = total_stocks - bullish - bearish
             avg_score = sum(r["total_score"] for r in results) / total_stocks if total_stocks > 0 else 0
 
-            lines.append(f"**市場情緒**：看多 {bullish} | 中性 {neutral} | 看空 {bearish} | 平均得分 {avg_score:+.1f}")
+            lines.append(f"**篩選 {total_stocks} 隻** ｜ 看多 {bullish} · 看空 {bearish} ｜ 平均得分 {avg_score:+.1f}")
             lines.append(f"")
             lines.append(f"---")
 
