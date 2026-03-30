@@ -15,14 +15,14 @@ env:
   CI: 'true'
   GITHUB_ACTIONS: 'true'
   # Cloudflare Worker API
-  WORKER_API_KEY: ${{ secrets.WORKER_API_KEY || 'stock-screening-2026' }}
-  # API Keys（建議之後移到 GitHub Secrets）
-  FMP_API_KEY: ${{ secrets.FMP_API_KEY || 'GEouSGBbAoOgnERMR0GjENhKwFkxeEeW' }}
-  ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY || 'CYSEDIRPDGYNRD3H' }}
-  TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY || '685ced6c2b694a12b359beeec084e9cf' }}
-  FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY || 'd6nsik9r01qse5qmtl4gd6nsik9r01qse5qmtl50' }}
-  TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY || '981e9f863c8997d8e4ac01ca269c033295e4c1bb' }}
-  EOD_API_KEY: ${{ secrets.EOD_API_KEY || '69c7f5b716ce48.31162491' }}
+  WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
+  # API Keys（全部從 GitHub Secrets 讀取）
+  FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+  ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+  TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+  FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+  TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
+  EOD_API_KEY: ${{ secrets.EOD_API_KEY }}
 
 jobs:
   daily-screening:
