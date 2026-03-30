@@ -104,15 +104,21 @@ async function handleUpload(request, env) {
   for (const [marketName, results] of Object.entries(markets)) {
     if (!results || results.length === 0) continue;
 
-    // 批次插入篩選結果（每次 50 筆）
-    const batchSize = 50;
+    // 使用 D1 batch API 批次插入（每條 SQL 1 筆，避免變數上限）
+    const stmt = env.DB.prepare(`
+      INSERT OR REPLACE INTO screening_results
+      (date, market, ticker, name, sector, current_price,
+       total_score, buy_score, sell_score,
+       quality_score, value_score, momentum_score,
+       tech_signal, zscore, f_score, signals)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    // D1 batch 最多 500 條語句，分批處理
+    const batchSize = 200;
     for (let i = 0; i < results.length; i += batchSize) {
       const batch = results.slice(i, i + batchSize);
-      const placeholders = batch.map(() =>
-        '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      ).join(', ');
-
-      const values = batch.flatMap(r => [
+      const stmts = batch.map(r => stmt.bind(
         date,
         marketName,
         r.ticker || '',
@@ -129,17 +135,9 @@ async function handleUpload(request, env) {
         r.zscore || null,
         r.f_score || null,
         r.signals ? r.signals.join('、') : '',
-      ]);
+      ));
 
-      await env.DB.prepare(`
-        INSERT OR REPLACE INTO screening_results
-        (date, market, ticker, name, sector, current_price,
-         total_score, buy_score, sell_score,
-         quality_score, value_score, momentum_score,
-         tech_signal, zscore, f_score, signals)
-        VALUES ${placeholders}
-      `).bind(...values).run();
-
+      await env.DB.batch(stmts);
       totalInserted += batch.length;
     }
 
