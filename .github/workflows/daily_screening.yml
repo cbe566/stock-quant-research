@@ -47,7 +47,7 @@ jobs:
       - name: 🔍 執行每日篩選
         run: |
           python3 daily_screening.py 2>&1 | tee screening_output.log
-        timeout-minutes: 25
+        timeout-minutes: 28
 
       - name: 📊 檢查報告是否生成
         run: |

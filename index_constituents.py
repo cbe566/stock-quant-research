@@ -369,23 +369,86 @@ def get_jp_stocks():
 
 # ==================== 統一入口 ====================
 
-def get_all_constituents():
-    """獲取四大市場全部成分股"""
+def get_all_constituents(cloud_mode=False):
+    """
+    獲取四大市場全部成分股
+    cloud_mode=True 時精簡股池，確保 GitHub Actions 25 分鐘內完成
+    """
     print("=" * 50)
     print("  動態抓取全球指數成分股")
+    if cloud_mode:
+        print("  ☁️ 雲端精簡模式：僅抓取主要指數成分股")
     print("=" * 50)
 
-    result = {
-        "美股": {"stocks": get_us_stocks(), "benchmark": "SPY", "currency": "USD"},
-        "港股": {"stocks": get_hk_stocks(), "benchmark": "^HSI", "currency": "HKD"},
-        "台股": {"stocks": get_tw_stocks(), "benchmark": "^TWII", "currency": "TWD"},
-        "日股": {"stocks": get_jp_stocks(), "benchmark": "^N225", "currency": "JPY"},
-    }
+    if cloud_mode:
+        # 雲端模式：精簡股池（~885 隻 → 可在 20 分鐘內完成）
+        # 美股：S&P 500（~500 隻）
+        # 港股：恒指+國指（~100 隻）
+        # 台股：台灣50 + 中型100 精選（~150 隻）
+        # 日股：日經225（~225 隻）
+        result = {
+            "美股": {"stocks": get_us_stocks(), "benchmark": "SPY", "currency": "USD"},
+            "港股": {"stocks": get_hk_stocks(), "benchmark": "^HSI", "currency": "HKD"},
+            "台股": {"stocks": _get_tw_top(), "benchmark": "^TWII", "currency": "TWD"},
+            "日股": {"stocks": _get_nikkei225_static(), "benchmark": "^N225", "currency": "JPY"},
+        }
+    else:
+        result = {
+            "美股": {"stocks": get_us_stocks(), "benchmark": "SPY", "currency": "USD"},
+            "港股": {"stocks": get_hk_stocks(), "benchmark": "^HSI", "currency": "HKD"},
+            "台股": {"stocks": get_tw_stocks(), "benchmark": "^TWII", "currency": "TWD"},
+            "日股": {"stocks": get_jp_stocks(), "benchmark": "^N225", "currency": "JPY"},
+        }
 
     total = sum(len(v["stocks"]) for v in result.values())
     print(f"\n總計：{total} 隻股票")
     print("=" * 50)
 
+    return result
+
+
+def _get_tw_top():
+    """台股精選：台灣50 + 中型100 主要成分股（雲端模式用）"""
+    cached = _load_cache("tw_top")
+    if cached:
+        print(f"  台股精選（快取）: {len(cached)} 隻")
+        return cached
+
+    # 台灣50 + 中型100 的代表性成分股
+    tw_top = [
+        # 台灣50 核心
+        "2330.TW", "2454.TW", "2317.TW", "2308.TW", "2303.TW",
+        "2382.TW", "2891.TW", "2881.TW", "2882.TW", "2886.TW",
+        "2884.TW", "2885.TW", "3711.TW", "2412.TW", "1303.TW",
+        "1301.TW", "1326.TW", "2002.TW", "1101.TW", "2912.TW",
+        "5871.TW", "5880.TW", "2207.TW", "3045.TW", "2603.TW",
+        "2880.TW", "6505.TW", "4904.TW", "3008.TW", "2301.TW",
+        "4938.TW", "2357.TW", "2395.TW", "3034.TW", "2327.TW",
+        "6669.TW", "2379.TW", "5876.TW", "2345.TW", "1216.TW",
+        "2892.TW", "9910.TW", "2890.TW", "3037.TW", "1590.TW",
+        "2887.TW", "6446.TW", "2883.TW", "3231.TW", "2105.TW",
+        # 中型100 精選（市值較大者）
+        "2347.TW", "3661.TW", "2049.TW", "3443.TW", "8069.TW",
+        "2377.TW", "6239.TW", "3017.TW", "2474.TW", "6285.TW",
+        "2408.TW", "3529.TW", "2344.TW", "5274.TW", "1477.TW",
+        "2201.TW", "3023.TW", "8046.TW", "2542.TW", "1504.TW",
+        "3044.TW", "2383.TW", "6176.TW", "6770.TW", "3653.TW",
+        "2618.TW", "9945.TW", "6415.TW", "1802.TW", "2101.TW",
+        "5269.TW", "3702.TW", "6531.TW", "2356.TW", "4966.TW",
+        "6488.TW", "8454.TW", "3035.TW", "2360.TW", "6271.TW",
+        "1476.TW", "1102.TW", "3532.TW", "6409.TW", "2324.TW",
+        "6789.TW", "3665.TW", "2633.TW", "4958.TW", "2615.TW",
+        # 熱門個股補充
+        "3706.TW", "2609.TW", "2610.TW", "1605.TW", "2376.TW",
+        "2353.TW", "3533.TW", "8150.TW", "6547.TW", "3036.TW",
+        "2337.TW", "6443.TW", "3714.TW", "2404.TW", "1227.TW",
+        "1304.TW", "1402.TW", "2027.TW", "2014.TW", "9904.TW",
+        "5534.TW", "2388.TW", "2354.TW", "2823.TW", "6472.TW",
+        "3228.TW", "2492.TW", "6550.TW", "2385.TW", "2727.TW",
+    ]
+    result = sorted(list(set(tw_top)))
+    _save_cache("tw_top", result)
+    print(f"  台股精選: {len(result)} 隻")
     return result
 
 

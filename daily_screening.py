@@ -18,6 +18,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 確保可以 import backtest_system 模組
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backtest_system"))
@@ -67,8 +68,8 @@ else:
 # ==================== 全球股票池（動態抓取） ====================
 from index_constituents import get_all_constituents
 
-# 動態獲取四大市場全部指數成分股
-ALL_MARKETS = get_all_constituents()
+# 動態獲取四大市場指數成分股（雲端模式精簡股池）
+ALL_MARKETS = get_all_constituents(cloud_mode=IS_CLOUD)
 
 
 # ==================== 核心篩選引擎 ====================
@@ -284,6 +285,17 @@ class DailyScreener:
                 "signals": [],            # 信號理由列表
             }
 
+            # --- 0. 預先抓取價格（避免後續重複呼叫） ---
+            if IS_CLOUD:
+                try:
+                    prices = self.de.get_prices(ticker, self.start_date, self.today)
+                    if prices is not None and not prices.empty:
+                        # 存入快取，後續 multifactor / technical / mean_reversion 自動命中
+                        cache_key = f"{ticker}_{self.start_date}_{self.today}"
+                        self.de.price_cache[cache_key] = prices
+                except Exception:
+                    pass
+
             # --- 1. 基本面 ---
             info = self.de.get_stock_info(ticker)
             if info:
@@ -406,29 +418,81 @@ class DailyScreener:
             self.errors.append(f"{ticker}: {str(e)}")
             return None
 
-    def screen_market(self, market_name, stocks):
-        """篩選整個市場，回傳排序後的結果"""
+    def screen_market(self, market_name, stocks, time_budget=None):
+        """
+        篩選整個市場，回傳排序後的結果
+        time_budget: 該市場的時間預算（秒），超時則提前結束
+        """
         print(f"\n{'='*60}")
         print(f"  正在篩選 {market_name}（{len(stocks)} 隻股票）...")
         print(f"{'='*60}")
 
         results = []
         total = len(stocks)
+        market_start = time.time()
+        completed_count = 0
+        failed_count = 0
 
-        for i, ticker in enumerate(stocks, 1):
-            print(f"  [{i}/{total}] {ticker}...", end=" ", flush=True)
-            r = self.screen_single_stock(ticker)
-            if r:
-                results.append(r)
-                score = r['total_score']
-                indicator = "🟢" if score >= 3 else ("🔴" if score <= -3 else "⚪")
-                print(f"{indicator} 得分:{score:+d}  {r.get('name', '')[:20]}")
-            else:
-                print("❌ 失敗")
+        if IS_CLOUD:
+            # 雲端模式：多線程並行（8 個線程）
+            max_workers = 8
+            print(f"  ⚡ 多線程模式（{max_workers} 線程並行）")
 
-            # yfinance 速率控制：避免被封
-            if i % 10 == 0:
-                time.sleep(1)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_to_ticker = {
+                    executor.submit(self.screen_single_stock, ticker): ticker
+                    for ticker in stocks
+                }
+
+                for future in as_completed(future_to_ticker):
+                    ticker = future_to_ticker[future]
+                    completed_count += 1
+
+                    # 時間預算檢查
+                    if time_budget and (time.time() - market_start) > time_budget:
+                        print(f"\n  ⏰ {market_name} 時間預算用盡，已完成 {completed_count}/{total}")
+                        # 取消未完成的任務
+                        for f in future_to_ticker:
+                            f.cancel()
+                        break
+
+                    try:
+                        r = future.result(timeout=30)
+                        if r:
+                            results.append(r)
+                            score = r['total_score']
+                            indicator = "🟢" if score >= 3 else ("🔴" if score <= -3 else "⚪")
+                            print(f"  [{completed_count}/{total}] {ticker}... {indicator} 得分:{score:+d}  {r.get('name', '')[:20]}")
+                        else:
+                            failed_count += 1
+                    except Exception:
+                        failed_count += 1
+
+                    # 每 50 隻輸出進度
+                    if completed_count % 50 == 0:
+                        elapsed = time.time() - market_start
+                        speed = completed_count / elapsed if elapsed > 0 else 0
+                        remaining = (total - completed_count) / speed if speed > 0 else 0
+                        print(f"  📊 進度 {completed_count}/{total} | 速度 {speed:.1f}隻/秒 | 預估剩餘 {remaining:.0f}秒")
+        else:
+            # 本地模式：序列執行（原始邏輯）
+            for i, ticker in enumerate(stocks, 1):
+                print(f"  [{i}/{total}] {ticker}...", end=" ", flush=True)
+                r = self.screen_single_stock(ticker)
+                if r:
+                    results.append(r)
+                    score = r['total_score']
+                    indicator = "🟢" if score >= 3 else ("🔴" if score <= -3 else "⚪")
+                    print(f"{indicator} 得分:{score:+d}  {r.get('name', '')[:20]}")
+                else:
+                    print("❌ 失敗")
+                    failed_count += 1
+
+                if i % 10 == 0:
+                    time.sleep(1)
+
+        elapsed = time.time() - market_start
+        print(f"  ✅ {market_name} 完成：{len(results)} 成功 / {failed_count} 失敗 / 耗時 {elapsed:.0f}秒")
 
         # 排序
         results.sort(key=lambda x: x["total_score"], reverse=True)
@@ -437,14 +501,39 @@ class DailyScreener:
     def run_full_screening(self):
         """執行全部四大市場篩選"""
         start_time = time.time()
+        # 雲端模式總時間預算 22 分鐘（留 3 分鐘給報告生成和 git push）
+        TOTAL_BUDGET = 22 * 60 if IS_CLOUD else None
+
         print(f"\n{'#'*60}")
         print(f"  每日全球股票篩選系統")
         print(f"  執行時間：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        if IS_CLOUD:
+            total_stocks = sum(len(c["stocks"]) for c in ALL_MARKETS.values())
+            print(f"  ☁️ 雲端模式 | 總股數：{total_stocks} | 時間預算：22分鐘")
         print(f"{'#'*60}")
 
+        # 按股票數量比例分配時間預算
+        total_stocks = sum(len(c["stocks"]) for c in ALL_MARKETS.values())
+
         for market_name, config in ALL_MARKETS.items():
+            # 計算該市場的時間預算
+            market_budget = None
+            if TOTAL_BUDGET:
+                elapsed = time.time() - start_time
+                remaining = TOTAL_BUDGET - elapsed
+                if remaining <= 60:
+                    print(f"\n  ⏰ 總時間預算即將用盡，跳過 {market_name}")
+                    continue
+                # 按剩餘市場的股票比例分配
+                remaining_stocks = sum(
+                    len(c["stocks"]) for mn, c in ALL_MARKETS.items()
+                    if mn not in self.results
+                )
+                ratio = len(config["stocks"]) / remaining_stocks if remaining_stocks > 0 else 1
+                market_budget = remaining * ratio
+
             try:
-                results = self.screen_market(market_name, config["stocks"])
+                results = self.screen_market(market_name, config["stocks"], time_budget=market_budget)
                 self.results[market_name] = results
             except Exception as e:
                 print(f"\n  ⚠️ {market_name} 篩選出錯：{e}")

@@ -24,6 +24,7 @@ import json
 import time
 import random
 import os
+import threading
 from datetime import datetime, timedelta
 from io import StringIO
 import warnings
@@ -64,6 +65,8 @@ class CloudDataEngine:
         self.info_cache = {}
         self._api_call_count = 0
         self._source_stats = {}  # 追蹤各數據源成功率
+        self._lock = threading.Lock()  # 多線程安全鎖
+        self._thread_local = threading.local()  # 每線程獨立 session
 
     def _rotate_headers(self):
         """輪換請求 headers，模擬真實瀏覽器"""
@@ -76,17 +79,33 @@ class CloudDataEngine:
             "Cache-Control": "no-cache",
         })
 
+    def _get_thread_session(self):
+        """取得當前線程的 requests.Session（線程安全）"""
+        if not hasattr(self._thread_local, 'session'):
+            s = requests.Session()
+            s.headers.update({
+                "User-Agent": random.choice(USER_AGENTS),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7",
+                "Accept-Language": "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Cache-Control": "no-cache",
+            })
+            self._thread_local.session = s
+        return self._thread_local.session
+
     def _request_with_retry(self, url, params=None, headers=None, max_retries=3, timeout=15):
-        """帶重試和指數退避的請求"""
+        """帶重試和指數退避的請求（線程安全）"""
+        session = self._get_thread_session()
         for attempt in range(max_retries):
             try:
                 if attempt > 0:
-                    self._rotate_headers()
+                    session.headers["User-Agent"] = random.choice(USER_AGENTS)
                     wait = (2 ** attempt) + random.uniform(0, 1)
                     time.sleep(wait)
 
-                resp = self.session.get(url, params=params, headers=headers,
-                                        timeout=timeout, allow_redirects=True)
+                resp = session.get(url, params=params, headers=headers,
+                                   timeout=timeout, allow_redirects=True)
 
                 if resp.status_code == 200:
                     return resp
@@ -104,13 +123,14 @@ class CloudDataEngine:
         return None
 
     def _track_source(self, source, success):
-        """追蹤數據源成功率"""
-        if source not in self._source_stats:
-            self._source_stats[source] = {"success": 0, "fail": 0}
-        if success:
-            self._source_stats[source]["success"] += 1
-        else:
-            self._source_stats[source]["fail"] += 1
+        """追蹤數據源成功率（線程安全）"""
+        with self._lock:
+            if source not in self._source_stats:
+                self._source_stats[source] = {"success": 0, "fail": 0}
+            if success:
+                self._source_stats[source]["success"] += 1
+            else:
+                self._source_stats[source]["fail"] += 1
 
     # ================================================================
     #  第一層：yfinance（最完整，但雲端常被封）
@@ -721,12 +741,13 @@ class CloudDataEngine:
 
     def get_prices(self, ticker, start, end):
         """
-        獲取價格數據 — 多源自動切換
+        獲取價格數據 — 多源自動切換（線程安全）
         優先順序：yfinance → Yahoo 直接 → 交易所 API → FMP → Tiingo → Twelve Data → Stooq
         """
         cache_key = f"{ticker}_{start}_{end}"
-        if cache_key in self.price_cache:
-            return self.price_cache[cache_key]
+        with self._lock:
+            if cache_key in self.price_cache:
+                return self.price_cache[cache_key]
 
         # 定義數據源嘗試順序
         sources = [
@@ -750,7 +771,8 @@ class CloudDataEngine:
             try:
                 df = fetch_fn()
                 if df is not None and len(df) > 0:
-                    self.price_cache[cache_key] = df
+                    with self._lock:
+                        self.price_cache[cache_key] = df
                     return df
             except Exception:
                 continue
@@ -759,11 +781,12 @@ class CloudDataEngine:
 
     def get_stock_info(self, ticker):
         """
-        獲取基本面數據 — 多源自動切換
+        獲取基本面數據 — 多源自動切換（線程安全）
         優先順序：yfinance → Yahoo 直接 → FMP → Finnhub
         """
-        if ticker in self.info_cache:
-            return self.info_cache[ticker]
+        with self._lock:
+            if ticker in self.info_cache:
+                return self.info_cache[ticker]
 
         sources = [
             ("yfinance", lambda: self._get_info_yfinance(ticker)),
@@ -776,7 +799,8 @@ class CloudDataEngine:
             try:
                 info = fetch_fn()
                 if info and (info.get("shortName") or info.get("currentPrice")):
-                    self.info_cache[ticker] = info
+                    with self._lock:
+                        self.info_cache[ticker] = info
                     return info
             except Exception:
                 continue
