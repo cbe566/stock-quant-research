@@ -22,24 +22,35 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # ==================== 字體 ====================
+# .ttf 直接載入，.ttc 需要指定 subfontIndex
 FONT_PATHS = [
-    "/Library/Fonts/Arial Unicode.ttf",
-    "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
-    "/System/Library/Fonts/STHeiti Medium.ttc",
-    # GitHub Actions 安裝的 Noto Sans CJK
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/noto-cjk/NotoSansCJKtc-Regular.otf",
-    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
+    # macOS
+    ("/Library/Fonts/Arial Unicode.ttf", None),
+    ("/System/Library/Fonts/Supplemental/Arial Unicode.ttf", None),
+    ("/System/Library/Fonts/STHeiti Medium.ttc", 0),
+    # Linux (GitHub Actions: apt install fonts-noto-cjk)
+    ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0),
+    ("/usr/share/fonts/noto-cjk/NotoSansCJKtc-Regular.otf", None),
+    ("/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc", 0),
+    ("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc", 0),
 ]
 FONT_NAME = "Helvetica"
-for fp in FONT_PATHS:
+for fp, subfont in FONT_PATHS:
     if os.path.exists(fp):
         try:
-            pdfmetrics.registerFont(TTFont("ArialUnicode", fp))
+            if subfont is not None:
+                pdfmetrics.registerFont(TTFont("ArialUnicode", fp, subfontIndex=subfont))
+            else:
+                pdfmetrics.registerFont(TTFont("ArialUnicode", fp))
             FONT_NAME = "ArialUnicode"
+            print(f"字體載入成功：{fp}")
             break
-        except Exception:
+        except Exception as e:
+            print(f"字體載入失敗 {fp}: {e}")
             continue
+
+if FONT_NAME == "Helvetica":
+    print("⚠️ 警告：未找到中文字體，PDF 中文將顯示為方塊")
 
 # ==================== 色彩系統 ====================
 C_NAVY = colors.HexColor("#0F172A")
@@ -130,7 +141,7 @@ class DailyReportPDF:
         el.append(Spacer(1, 4*mm))
         sig = ParagraphStyle("sig", fontName=FONT_NAME, fontSize=9, leading=14, textColor=C_GRAY)
         el.append(Paragraph("<b>何宣逸 Jamie Ho</b>", sig))
-        el.append(Paragraph("手機：+852 6765 0336 / +86 130 0329 5233 ｜ 電郵：cbe566@gmail.com", sig))
+        el.append(Paragraph("手機：+852 6765 0336 / +86 130 0329 5233 ｜ 電郵：backup901012@gmail.com", sig))
 
         el.append(PageBreak())
         return el
@@ -256,7 +267,7 @@ class DailyReportPDF:
         sig = ParagraphStyle("sig2", fontName=FONT_NAME, fontSize=9, leading=14, textColor=C_TEXT)
         el.append(Paragraph("<b>何宣逸 Jamie Ho</b>", sig))
         sm = self.s["small"]
-        el.append(Paragraph("手機：+852 6765 0336 / +86 130 0329 5233 ｜ 電郵：cbe566@gmail.com", sm))
+        el.append(Paragraph("手機：+852 6765 0336 / +86 130 0329 5233 ｜ 電郵：backup901012@gmail.com", sm))
         el.append(Spacer(1, 4*mm))
 
         now = datetime.now()
