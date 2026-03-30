@@ -55,7 +55,7 @@ jobs:
           path: screening_${{ matrix.market }}.json
           retention-days: 1
 
-  # ===== 第二階段：合併 + 報告 + 上傳 =====
+  # ===== 第二階段：合併 + PDF + Email + 上傳 =====
   merge-and-publish:
     needs: screen
     runs-on: ubuntu-latest
@@ -73,8 +73,10 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: 安裝依賴
-        run: pip install yfinance pandas numpy requests lxml html5lib openpyxl
+      - name: 安裝依賴 + 中文字體
+        run: |
+          pip install yfinance pandas numpy requests lxml html5lib openpyxl reportlab
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk > /dev/null 2>&1 || true
 
       - name: 下載所有市場結果
         uses: actions/download-artifact@v4
@@ -83,9 +85,12 @@ jobs:
           pattern: result-*
           merge-multiple: true
 
-      - name: 合併結果 + 生成報告 + 上傳 D1
+      - name: 合併結果 + PDF + Email + D1
         env:
           WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: python3 merge_and_upload.py
 
       - name: 檢查報告
@@ -94,6 +99,8 @@ jobs:
             echo "### 每日篩選報告已生成" >> $GITHUB_STEP_SUMMARY
             head -100 "每日篩選報告_最新.md" >> $GITHUB_STEP_SUMMARY
           fi
+          # 列出生成的檔案
+          ls -la daily_reports/ 2>/dev/null | tail -5
 
       - name: 提交報告到 GitHub
         run: |

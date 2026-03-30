@@ -26,6 +26,10 @@ FONT_PATHS = [
     "/Library/Fonts/Arial Unicode.ttf",
     "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
     "/System/Library/Fonts/STHeiti Medium.ttc",
+    # GitHub Actions 安裝的 Noto Sans CJK
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/noto-cjk/NotoSansCJKtc-Regular.otf",
+    "/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc",
 ]
 FONT_NAME = "Helvetica"
 for fp in FONT_PATHS:
