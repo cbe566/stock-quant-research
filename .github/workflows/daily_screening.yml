@@ -14,6 +14,8 @@ env:
   # 標記雲端環境
   CI: 'true'
   GITHUB_ACTIONS: 'true'
+  # Cloudflare Worker API
+  WORKER_API_KEY: ${{ secrets.WORKER_API_KEY || 'stock-screening-2026' }}
   # API Keys（建議之後移到 GitHub Secrets）
   FMP_API_KEY: ${{ secrets.FMP_API_KEY || 'GEouSGBbAoOgnERMR0GjENhKwFkxeEeW' }}
   ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY || 'CYSEDIRPDGYNRD3H' }}
@@ -62,6 +64,11 @@ jobs:
             cat screening_output.log
             exit 1
           fi
+
+      - name: ☁️ 上傳結果到 Cloudflare D1
+        if: success()
+        run: |
+          python3 upload_to_d1.py || echo "⚠️ D1 上傳失敗（不影響報告生成）"
 
       - name: 💾 提交報告到 GitHub
         run: |

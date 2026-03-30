@@ -1,0 +1,18 @@
+{
+  "name": "stock-screening-api",
+  "main": "src/index.js",
+  "compatibility_date": "2024-12-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "stock-screening-db",
+      "database_id": "a62e5ed5-0705-4c7c-a5f5-b4e0e8957cee"
+    }
+  ],
+  "triggers": {
+    "crons": []
+  },
+  "vars": {
+    "API_KEY": "stock-screening-2026"
+  }
+}
