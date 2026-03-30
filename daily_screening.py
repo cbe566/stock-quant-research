@@ -732,4 +732,41 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="每日全球股票篩選系統")
+    parser.add_argument("--market", type=str, default=None,
+                        help="只篩選指定市場（美股/港股/台股/日股）")
+    parser.add_argument("--quick", action="store_true",
+                        help="快速模式（僅用緩存/縮小股池）")
+    parser.add_argument("--output-json", type=str, default=None,
+                        help="指定 JSON 結果輸出路徑（用於 matrix job 合併）")
+    args = parser.parse_args()
+
+    if args.market:
+        # 單市場模式：只篩選指定市場，輸出 JSON
+        print(f"🎯 單市場模式：{args.market}")
+        screener = DailyScreener()
+
+        if args.market not in ALL_MARKETS:
+            print(f"❌ 未知市場：{args.market}，可用：{list(ALL_MARKETS.keys())}")
+            sys.exit(1)
+
+        config = ALL_MARKETS[args.market]
+        results = screener.screen_market(args.market, config["stocks"])
+        screener.results[args.market] = results
+
+        # 輸出 JSON 結果
+        output_path = args.output_json or f"screening_{args.market}.json"
+        json_data = {
+            "date": screener.today,
+            "generated_at": datetime.now().isoformat(),
+            "market": args.market,
+            "results": results,
+            "errors": screener.errors,
+        }
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2, default=str)
+        print(f"✅ {args.market} 篩選完成，結果已存到 {output_path}")
+    else:
+        # 完整模式：四大市場全部篩選
+        main()

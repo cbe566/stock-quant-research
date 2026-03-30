@@ -1,22 +1,18 @@
-name: 每日全球股票篩選
+name: 每日全球股票篩選（平行版）
 
 on:
   schedule:
-    # 每天 UTC 22:28 = 台灣/香港 06:28 AM
-    - cron: '28 22 * * *'
+    # 台北 05:00 = UTC 21:00，預留充足時間給 07:30 發送
+    - cron: '0 21 * * *'
   workflow_dispatch:
-    # 允許手動觸發（方便測試）
 
 permissions:
   contents: write
 
 env:
-  # 標記雲端環境
   CI: 'true'
   GITHUB_ACTIONS: 'true'
-  # Cloudflare Worker API
   WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
-  # API Keys（全部從 GitHub Secrets 讀取）
   FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
   ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
   TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
@@ -25,78 +21,89 @@ env:
   EOD_API_KEY: ${{ secrets.EOD_API_KEY }}
 
 jobs:
-  daily-screening:
+  # ===== 第一階段：4 市場平行篩選 =====
+  screen:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        market: [美股, 港股, 台股, 日股]
 
     steps:
-      - name: 📥 Checkout 程式碼
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🐍 設定 Python 環境
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: 📦 安裝依賴
-        run: |
-          pip install --upgrade pip
-          pip install yfinance pandas numpy requests lxml html5lib openpyxl
+      - name: 安裝依賴
+        run: pip install yfinance pandas numpy requests lxml html5lib openpyxl
 
-      - name: 🔍 執行每日篩選
+      - name: 篩選 ${{ matrix.market }}
         run: |
-          python3 daily_screening.py 2>&1 | tee screening_output.log
-        timeout-minutes: 28
+          python3 daily_screening.py --market "${{ matrix.market }}" --output-json "screening_${{ matrix.market }}.json"
+        timeout-minutes: 12
 
-      - name: 📊 檢查報告是否生成
+      - name: 上傳結果
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.market }}
+          path: screening_${{ matrix.market }}.json
+          retention-days: 1
+
+  # ===== 第二階段：合併 + 報告 + 上傳 =====
+  merge-and-publish:
+    needs: screen
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安裝依賴
+        run: pip install yfinance pandas numpy requests lxml html5lib openpyxl
+
+      - name: 下載所有市場結果
+        uses: actions/download-artifact@v4
+        with:
+          path: market_results
+          pattern: result-*
+          merge-multiple: true
+
+      - name: 合併結果 + 生成報告 + 上傳 D1
+        env:
+          WORKER_API_KEY: ${{ secrets.WORKER_API_KEY }}
+        run: python3 merge_and_upload.py
+
+      - name: 檢查報告
         run: |
           if [ -f "每日篩選報告_最新.md" ]; then
-            echo "✅ 報告生成成功"
-            echo "### 📈 每日篩選報告已生成" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            # 擷取報告前100行到 Summary
+            echo "### 每日篩選報告已生成" >> $GITHUB_STEP_SUMMARY
             head -100 "每日篩選報告_最新.md" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ 報告生成失敗"
-            cat screening_output.log
-            exit 1
           fi
 
-      - name: ☁️ 上傳結果到 Cloudflare D1
-        if: success()
-        run: |
-          python3 upload_to_d1.py || echo "⚠️ D1 上傳失敗（不影響報告生成）"
-
-      - name: 💾 提交報告到 GitHub
+      - name: 提交報告到 GitHub
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-
-          # 添加報告檔案
           git add daily_reports/ "每日篩選報告_最新.md" || true
-
-          # 檢查是否有變更
           if git diff --staged --quiet; then
-            echo "沒有新的變更需要提交"
+            echo "沒有新的變更"
           else
-            DATE=$(date +"%Y-%m-%d")
-            git commit -m "📈 每日篩選報告 ${DATE} — GitHub Actions 自動生成"
+            DATE=$(TZ='Asia/Taipei' date +"%Y-%m-%d")
+            git commit -m "每日篩選報告 ${DATE} — 4 市場平行篩選"
             git push
-            echo "✅ 報告已推送到 GitHub"
           fi
-
-      - name: 📧 發送報告到 Email（可選）
-        if: always()
-        run: |
-          # 未來可接入 SendGrid / Gmail API 發送報告
-          # 目前先輸出到 Actions Summary，可以在 GitHub 上直接查看
-          echo "報告已發布到 GitHub Actions Summary"
-          echo "查看位置：Actions → 每日全球股票篩選 → 最新 run → Summary"
-
-      - name: 🧹 清理臨時檔案
-        if: always()
-        run: |
-          rm -f screening_output.log
