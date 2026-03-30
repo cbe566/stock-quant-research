@@ -34,12 +34,12 @@ warnings.filterwarnings('ignore')
 
 # API Keys（從環境變數讀取，GitHub Actions 用 Secrets 注入）
 API_KEYS = {
-    "FMP": os.environ.get("FMP_API_KEY", "GEouSGBbAoOgnERMR0GjENhKwFkxeEeW"),
-    "ALPHA_VANTAGE": os.environ.get("ALPHA_VANTAGE_API_KEY", "CYSEDIRPDGYNRD3H"),
-    "TWELVE_DATA": os.environ.get("TWELVE_DATA_API_KEY", "685ced6c2b694a12b359beeec084e9cf"),
-    "FINNHUB": os.environ.get("FINNHUB_API_KEY", "d6nsik9r01qse5qmtl4gd6nsik9r01qse5qmtl50"),
-    "TIINGO": os.environ.get("TIINGO_API_KEY", "981e9f863c8997d8e4ac01ca269c033295e4c1bb"),
-    "EOD": os.environ.get("EOD_API_KEY", "69c7f5b716ce48.31162491"),
+    "FMP": os.environ.get("FMP_API_KEY", ""),
+    "ALPHA_VANTAGE": os.environ.get("ALPHA_VANTAGE_API_KEY", ""),
+    "TWELVE_DATA": os.environ.get("TWELVE_DATA_API_KEY", ""),
+    "FINNHUB": os.environ.get("FINNHUB_API_KEY", ""),
+    "TIINGO": os.environ.get("TIINGO_API_KEY", ""),
+    "EOD": os.environ.get("EOD_API_KEY", ""),
 }
 
 # 瀏覽器 User-Agent 池（隨機輪換避免被識別為爬蟲）
